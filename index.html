@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AWS Cloud Monitoring Lab – EC2 CPU, CloudWatch &amp; SNS</title>
+<meta name="description" content="Interactive educational simulation: EC2 CPU utilization, CloudWatch alarms and SNS email notifications. #BuildwithCloudmessenger">
+<!-- Optional web font. If it cannot load, the system-font fallbacks in css/style.css are used. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&amp;display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<a class="skip" href="#main">Skip to the diagram</a>
+
+<header class="top">
+  <div>
+    <h1>AWS Cloud Monitoring Lab</h1>
+    <p class="sub">EC2 CPU Utilization | CloudWatch Alarms | SNS Notifications</p>
+  </div>
+  <div class="brand">
+    <span class="tag">#BuildwithCloudmessenger</span>
+    <small>Educational simulation only. No live AWS resources are created or monitored.</small>
+  </div>
+</header>
+
+<div class="toolbar" role="toolbar" aria-label="Playback controls">
+  <button id="playBtn" class="btn primary" type="button">▶ Play</button>
+  <button id="pauseBtn" class="btn" type="button">❚❚ Pause</button>
+  <button id="resetBtn" class="btn" type="button">↺ Reset</button>
+  <span class="spacer"></span>
+  <button id="motionBtn" class="btn" type="button" aria-pressed="false">Motion: on</button>
+  <button id="themeBtn" class="btn" type="button" aria-pressed="false">☀ Light theme</button>
+</div>
+
+<div class="layout">
+  <nav class="steps" aria-label="Nine learning steps">
+    <ol id="stepNav"></ol>
+  </nav>
+
+  <main id="main">
+    <section class="card diagram-card" aria-label="Animated architecture diagram">
+      <div class="scroll">
+      <svg id="diagram" viewBox="0 0 1100 620" role="img" aria-labelledby="dgTitle dgDesc" xmlns="http://www.w3.org/2000/svg">
+        <title id="dgTitle">EC2 to CloudWatch to SNS to email architecture</title>
+        <desc id="dgDesc">Customers visit Aarthi's EC2 web server. EC2 sends CPUUtilization metrics to CloudWatch. A CloudWatch alarm compares the metric to a threshold and, in ALARM state, publishes to an SNS topic, which emails Aarthi.</desc>
+        <defs>
+          <marker id="arB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#4da3ff"/></marker>
+          <marker id="arP" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#a47bff"/></marker>
+          <marker id="arO" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#ffb02e"/></marker>
+          <marker id="arT" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2fd4c0"/></marker>
+        </defs>
+
+        <!-- 1) AWS cloud boundary -->
+        <g data-step="1" class="rv">
+          <rect x="20" y="100" width="840" height="500" rx="26" class="cloudbox"/>
+          <path d="M44 138a14 14 0 0 1 4-27 18 18 0 0 1 34-3 14 14 0 0 1 4 30z" class="cloudicon"/>
+          <text x="96" y="132" class="lbl-sm">AWS Cloud</text>
+        </g>
+
+        <!-- 2) WIRES FIRST -->
+        <g fill="none" stroke-width="3" stroke-linecap="round">
+          <path id="w5" d="M135 80 L135 230" class="wire rv" data-step="1" stroke="#4da3ff" marker-end="url(#arB)"/>
+          <path id="w1" d="M230 350 C275 350 275 250 320 250" class="wire rv" data-step="2" stroke="#4da3ff" marker-end="url(#arB)"/>
+          <path id="w2" d="M460 330 L460 370" class="wire rv" data-step="4" stroke="#a47bff" marker-end="url(#arP)"/>
+          <path id="w3" d="M600 465 C650 465 650 340 690 340" class="wire rv" data-step="6" stroke="#ffb02e" marker-end="url(#arO)"/>
+          <path id="w4" d="M840 340 L910 340" class="wire rv" data-step="8" stroke="#2fd4c0" marker-end="url(#arT)"/>
+        </g>
+        <text x="150" y="160" class="lbl-xs rv" data-step="1">customer requests</text>
+        <text x="236" y="318" class="lbl-xs rv" data-step="2">CPUUtilization</text>
+        <text x="624" y="400" class="lbl-xs rv" data-step="6">alarm action</text>
+        <text x="860" y="326" class="lbl-xs rv" data-step="8" text-anchor="middle">email</text>
+
+        <!-- 3) SERVICE BOXES -->
+        <!-- Customers -->
+        <g class="rv" data-step="1">
+          <circle cx="75" cy="40" r="11" class="cust"/><circle cx="135" cy="40" r="11" class="cust"/><circle cx="195" cy="40" r="11" class="cust"/>
+          <path d="M60 68a15 15 0 0 1 30 0zM120 68a15 15 0 0 1 30 0zM180 68a15 15 0 0 1 30 0z" class="cust"/>
+          <text x="135" y="18" text-anchor="middle" class="lbl-xs">Shoppers</text>
+        </g>
+
+        <!-- Amazon EC2 -->
+        <g class="rv" data-step="1" id="gEC2">
+          <rect x="40" y="230" width="190" height="240" rx="16" class="box blue"/>
+          <text x="135" y="256" text-anchor="middle" class="lbl">Amazon EC2</text>
+          <text x="135" y="274" text-anchor="middle" class="lbl-xs">Aarthi's web shop · i-example123</text>
+          <rect x="62" y="288" width="146" height="62" rx="6" class="screen"/>
+          <rect x="62" y="288" width="146" height="14" rx="6" class="screenbar"/>
+          <text x="135" y="332" text-anchor="middle" class="lbl-sm">🛒 Online shop</text>
+          <text x="135" y="388" text-anchor="middle" class="lbl-xs">CPU utilization (simulated)</text>
+          <rect x="62" y="396" width="146" height="18" rx="9" class="meterbg"/>
+          <rect id="cpuFill" x="62" y="396" width="36" height="18" rx="9" fill="#29d391"/>
+          <text id="cpuText" x="135" y="440" text-anchor="middle" class="lbl-sm">25%</text>
+        </g>
+
+        <!-- Amazon CloudWatch -->
+        <g class="rv" data-step="2" id="gCW">
+          <rect x="300" y="130" width="320" height="450" rx="16" class="box purple"/>
+          <text x="460" y="158" text-anchor="middle" class="lbl">Amazon CloudWatch</text>
+          <rect x="320" y="175" width="280" height="155" rx="8" class="panel"/>
+          <text x="330" y="192" class="lbl-xs">Metric: CPUUtilization (%)</text>
+          <text id="waitTxt" x="460" y="262" text-anchor="middle" class="lbl-xs">Waiting for first data point…</text>
+          <g class="rv" data-step="3" id="gGraph">
+            <line x1="330" y1="205" x2="590" y2="205" class="grid"/><line x1="330" y1="255" x2="590" y2="255" class="grid"/><line x1="330" y1="305" x2="590" y2="305" class="grid"/>
+            <polyline id="gLine" points="" fill="none" stroke="#c9a6ff" stroke-width="2.5" stroke-linejoin="round"/>
+          </g>
+          <g class="rv" data-step="4" id="gThrG">
+            <line id="gThr" x1="330" y1="230" x2="590" y2="230" stroke="#ffb02e" stroke-width="2" stroke-dasharray="7 5"/>
+            <text id="gThrTxt" x="594" y="226" text-anchor="end" class="lbl-xs gold">80%</text>
+          </g>
+          <g class="rv" data-step="4" id="gAlarm">
+            <rect x="320" y="370" width="280" height="190" rx="10" class="panel alarmpanel"/>
+            <text x="332" y="392" class="lbl-sm">⏰ Alarm</text>
+            <text id="alarmName" x="332" y="412" class="lbl-xs">aarthi-ec2-high-cpu</text>
+            <text id="alarmExpr" x="332" y="432" class="lbl-xs gold">CPUUtilization &gt; 80% · 2 of 2 samples</text>
+            <g class="rv" data-step="6" id="gPills">
+              <g id="pillOK"><rect x="332" y="448" width="76" height="26" rx="13" class="pill"/><text x="370" y="466" text-anchor="middle" class="pilltxt">OK</text></g>
+              <g id="pillALARM"><rect x="414" y="448" width="76" height="26" rx="13" class="pill"/><text x="452" y="466" text-anchor="middle" class="pilltxt">ALARM</text></g>
+              <g id="pillINS"><rect x="496" y="448" width="94" height="26" rx="13" class="pill"/><text x="543" y="466" text-anchor="middle" class="pilltxt">INSUFFICIENT</text></g>
+              <text id="stateBig" x="332" y="512" class="statebig">OK</text>
+              <text id="stateNote" x="332" y="536" class="lbl-xs">Condition not breached</text>
+            </g>
+          </g>
+        </g>
+
+        <!-- Amazon SNS (ghost at step 6, full from step 7) -->
+        <g class="rv" data-step="6" data-full="7" id="gSNS">
+          <rect x="690" y="270" width="150" height="140" rx="16" class="box teal"/>
+          <text x="765" y="296" text-anchor="middle" class="lbl">Amazon SNS</text>
+          <text x="765" y="318" text-anchor="middle" class="lbl-xs">Topic</text>
+          <text x="765" y="334" text-anchor="middle" class="lbl-xs tealtxt">aarthi-ec2-cpu-alerts</text>
+          <text id="snsStatusTxt" x="765" y="370" text-anchor="middle" class="lbl-sm">Idle</text>
+          <text x="765" y="392" text-anchor="middle" class="lbl-xs">email subscription ✓</text>
+        </g>
+
+        <!-- Email endpoint -->
+        <g class="rv" data-step="8" id="gMail">
+          <rect x="910" y="250" width="160" height="180" rx="16" class="box teal"/>
+          <text x="990" y="278" text-anchor="middle" class="lbl">Aarthi's inbox</text>
+          <rect x="945" y="300" width="90" height="60" rx="6" class="screen"/>
+          <path d="M945 303 L990 335 L1035 303" fill="none" class="mailline"/>
+          <text id="mailStatus" x="990" y="390" text-anchor="middle" class="lbl-sm">No alert yet</text>
+          <text x="990" y="410" text-anchor="middle" class="lbl-xs">(simulated endpoint)</text>
+        </g>
+
+        <!-- 4) ANIMATED PACKETS LAST -->
+        <g id="pkMetric" class="pk">
+          <circle r="7" fill="#a47bff"><animateMotion dur="2.4s" begin="0s" repeatCount="indefinite"><mpath href="#w1"/></animateMotion></circle>
+          <circle r="7" fill="#a47bff"><animateMotion dur="2.4s" begin="0.8s" repeatCount="indefinite"><mpath href="#w1"/></animateMotion></circle>
+          <circle r="7" fill="#a47bff"><animateMotion dur="2.4s" begin="1.6s" repeatCount="indefinite"><mpath href="#w1"/></animateMotion></circle>
+        </g>
+        <g id="pkInner" class="pk">
+          <circle r="5" fill="#a47bff"><animateMotion dur="1.2s" begin="0s" repeatCount="indefinite"><mpath href="#w2"/></animateMotion></circle>
+        </g>
+        <g id="pkReq" class="pk">
+          <circle r="6" fill="#4da3ff"><animateMotion dur="1.6s" begin="0s" repeatCount="indefinite"><mpath href="#w5"/></animateMotion></circle>
+          <circle r="6" fill="#4da3ff"><animateMotion dur="1.6s" begin="0.8s" repeatCount="indefinite"><mpath href="#w5"/></animateMotion></circle>
+        </g>
+        <g id="pkAlarm" class="pk">
+          <g><text font-size="20" text-anchor="middle" y="7">⚠</text><animateMotion dur="2s" repeatCount="indefinite"><mpath href="#w3"/></animateMotion></g>
+        </g>
+        <g id="pkMail" class="pk">
+          <g><text font-size="22" text-anchor="middle" y="7">✉</text><animateMotion dur="1.8s" repeatCount="indefinite"><mpath href="#w4"/></animateMotion></g>
+        </g>
+        <!-- Static stand-ins used when motion is reduced -->
+        <g class="sdot"><circle cx="275" cy="300" r="6" fill="#a47bff"/><circle cx="650" cy="400" r="6" fill="#ffb02e"/><circle cx="875" cy="340" r="6" fill="#2fd4c0"/></g>
+      </svg>
+      </div>
+    </section>
+
+    <section class="card caption" aria-live="polite" aria-label="Step explanation">
+      <h2 id="capTitle">Step 1</h2>
+      <div class="cap-grid">
+        <p><b>In plain words:</b> <span id="capPlain"></span></p>
+        <p><b>Technical name:</b> <span id="capTech"></span></p>
+        <p><b>Watch the picture:</b> <span id="capWatch"></span></p>
+      </div>
+      <ul id="capPoints"></ul>
+      <div id="readings" class="readings" hidden></div>
+    </section>
+
+    <section class="card" aria-label="Simulation controls">
+      <h2>Simulation controls</h2>
+      <div class="ctrl-grid">
+        <div class="ctrl">
+          <label for="cpuSlider">Simulated CPU utilization: <output id="cpuVal">25%</output></label>
+          <input id="cpuSlider" type="range" min="0" max="100" value="25">
+          <div class="row">
+            <button class="btn preset" data-preset="normal" type="button">Normal 25%</button>
+            <button class="btn preset" data-preset="moderate" type="button">Moderate 55%</button>
+            <button class="btn preset" data-preset="high" type="button">High 85%</button>
+            <button class="btn preset" data-preset="critical" type="button">Critical 96%</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <label for="thrSlider">Alarm threshold: <output id="thrVal">80%</output></label>
+          <input id="thrSlider" type="range" min="10" max="100" value="80">
+          <div class="form">
+            <label>Alarm name <input id="nameIn" type="text" maxlength="40" value="aarthi-ec2-high-cpu"></label>
+            <label>Comparison
+              <select id="opSel"><option value="&gt;">&gt; (greater than)</option><option value="&gt;=">&gt;= (greater or equal)</option><option value="&lt;">&lt; (less than)</option><option value="&lt;=">&lt;= (less or equal)</option></select>
+            </label>
+            <label>Evaluation periods
+              <select id="nSel"><option>1</option><option selected>2</option><option>3</option><option>4</option></select>
+            </label>
+            <label>Period (shown in the alarm)
+              <select id="periodSel"><option value="5 minutes">5 minutes (basic)</option><option value="1 minute">1 minute (detailed)</option></select>
+            </label>
+            <label>Sample every
+              <select id="sampleSel"><option value="1000" selected>1 second</option><option value="2000">2 seconds</option><option value="3000">3 seconds</option></select>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="row actions">
+        <button id="simAlarmBtn" class="btn warn" type="button">Simulate alarm</button>
+        <button id="testBtn" class="btn" type="button">Send test notification</button>
+        <button id="ackBtn" class="btn" type="button">Acknowledge alert</button>
+        <button id="recoverBtn" class="btn good" type="button">Recover server load</button>
+        <button id="noDataBtn" class="btn" type="button" aria-pressed="false">Stop sending metrics</button>
+      </div>
+    </section>
+
+    <section class="card" aria-label="Monitoring dashboard">
+      <h2>Monitoring dashboard</h2>
+      <div class="dash">
+        <div class="kpis">
+          <div class="kpi"><span>CPU utilization</span><strong id="dCpu">25%</strong></div>
+          <div class="kpi"><span>Alarm threshold</span><strong id="dThr" class="gold">80%</strong></div>
+          <div class="kpi"><span>Alarm state</span><strong id="dState">Not created</strong></div>
+          <div class="kpi"><span>EC2 health</span><strong id="dHealth">Running</strong></div>
+          <div class="kpi wide"><span>Latest event</span><strong id="dEvent" class="small">Aarthi's shop is online.</strong></div>
+          <div class="kpi wide"><span>SNS delivery</span><strong id="dSns" class="small">No alarm action yet</strong></div>
+        </div>
+        <svg id="dChart" viewBox="0 0 400 190" role="img" aria-label="CPU utilization history chart">
+          <rect x="30" y="10" width="360" height="150" class="chartbg"/>
+          <line x1="30" y1="47.5" x2="390" y2="47.5" class="grid"/><line x1="30" y1="85" x2="390" y2="85" class="grid"/><line x1="30" y1="122.5" x2="390" y2="122.5" class="grid"/>
+          <text x="26" y="14" text-anchor="end" class="axis">100</text><text x="26" y="88" text-anchor="end" class="axis">50</text><text x="26" y="163" text-anchor="end" class="axis">0</text>
+          <polygon id="dArea" points="" fill="rgba(164,123,255,.22)"/>
+          <polyline id="dLine" points="" fill="none" stroke="#c9a6ff" stroke-width="2.5" stroke-linejoin="round"/>
+          <line id="dThrLine" x1="30" y1="40" x2="390" y2="40" stroke="#ffb02e" stroke-width="2" stroke-dasharray="7 5"/>
+          <text x="210" y="182" text-anchor="middle" class="axis">last 30 simulated samples (educational data)</text>
+        </svg>
+      </div>
+    </section>
+
+    <section class="card" aria-label="Simulated email">
+      <h2>Aarthi's inbox <span id="inboxBadge" class="badge">empty</span></h2>
+      <p class="muted" id="inboxNote">Simulated message. Nothing is sent and no real AWS service is contacted.</p>
+      <div id="inbox" class="inbox" hidden>
+        <p class="subject" id="mailSubject"></p>
+        <p class="body" id="mailBody"></p>
+      </div>
+    </section>
+
+    <section class="card" id="summary" hidden aria-label="Architecture summary">
+      <h2>Complete architecture</h2>
+      <p class="flow"><b>EC2 instance</b> → <b>CloudWatch metrics</b> → <b>CloudWatch alarm</b> → <b>SNS topic</b> → <b>Email subscription</b> → <b>Aarthi</b></p>
+      <p>This design <b>detects and notifies</b>. It does not reduce CPU or repair the instance; automatic remediation or scaling needs extra configuration (for example Auto Scaling or an alarm action that runs automation).</p>
+      <h3>Troubleshooting checklist for a Cloud Support Engineer</h3>
+      <ul>
+        <li>Alarm stuck in <b>INSUFFICIENT_DATA</b>? Check the instance is running, the right metric, dimension (InstanceId), namespace (AWS/EC2), period and missing-data treatment.</li>
+        <li>No email? Confirm the alarm has an action for the <b>ALARM</b> state, the topic ARN is correct, and the subscription is <b>Confirmed</b> (not PendingConfirmation). Check spam folders.</li>
+        <li>Metrics look delayed? Basic monitoring is typically 5-minute granularity; detailed monitoring is 1 minute and may cost extra.</li>
+        <li>Review the alarm's <b>history</b> tab and SNS delivery logging to see what actually happened.</li>
+        <li>High CPU is a symptom, not a verdict: investigate the workload before changing instance size.</li>
+      </ul>
+    </section>
+
+    <section class="card" aria-label="Moving-object legend">
+      <h2>Legend</h2>
+      <ul id="legend" class="legend"></ul>
+      <p id="legendDesc" class="muted" aria-live="polite">Select a legend item to learn what it means.</p>
+    </section>
+  </main>
+</div>
+
+<div id="live" class="sr" aria-live="polite"></div>
+<footer>#BuildwithCloudmessenger · Educational simulation only. No live AWS resources are created or monitored.</footer>
+<script src="js/app.js"></script>
+</body>
+</html>
